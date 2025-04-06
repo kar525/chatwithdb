@@ -2,4 +2,4 @@ google-generativeai
 pandas
 pathlib
 textwrap
-IPython.display
+IPython
