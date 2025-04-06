@@ -65,7 +65,7 @@ try:
             query_result = {df_name}[{df_name}['age'] > 30]
             """
             response = model.generate_content(prompt)
-            if is not None:
+            if response is not None:
                 to_markdown(respond.text)
                 query = response.text.replace("```", "#")
                 exec(query)
