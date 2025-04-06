@@ -18,7 +18,7 @@ try:
     uploaded_file = st.file_uploader("Please upload a datadict file")
     if uploaded_file is not None:
         data_dict_df = pd.read_csv(uploaded_file)
-        data_dict_text = '\n'.join('- '+data_dict_df['column_name’]+': '+data_dict_df['data_type’]+'. '+data_dict_df['description’])
+        data_dict_text = '\n'.join('- '+data_dict_df['column_name’]+': '+data_dict_df['data_type']+'. '+data_dict_df['description’])
         uploaded_file2 = st.file_uploader("Please upload a transaction file")
         if uploaded_file2 is not None:
             transaction_df = pd.read_csv('uploaded_file2')
