@@ -65,17 +65,18 @@ try:
             query_result = {df_name}[{df_name}['age'] > 30]
             """
             response = model.generate_content(prompt)
-            to_markdown(respond.text)
-            query = response.text.replace("```", "#")
-            exec(query)
-            explain_the_results = f'''
-            the user asked {question}, 
-            there is the results {ANSWER}
-            answer the question and summarize the answer, 
-            include your opinions of the persona of this customer
-            '''
-            response = model.generate_content(explain_the_results)
-            st.text(response)
+            if is not None:
+                to_markdown(respond.text)
+                query = response.text.replace("```", "#")
+                exec(query)
+                explain_the_results = f'''
+                the user asked {question}, 
+                there is the results {ANSWER}
+                answer the question and summarize the answer, 
+                include your opinions of the persona of this customer
+                '''
+                response = model.generate_content(explain_the_results)
+                st.text(response)
 except Exception as e:
     st.error(f'An error occurred {e}')
 
