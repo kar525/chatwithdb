@@ -2,5 +2,5 @@ IPython
 google-generativeai
 pandas
 pathlib
-textwrap
+
 
