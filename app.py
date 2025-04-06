@@ -9,7 +9,7 @@ from IPython.display import Markdown
 
 try:
     def to_markdown(text):
-      text = text.replace('•', ' *’)
+      text = text.replace('•', ' *')
       return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
       
     key = st.secrets['gemini_api_key']  # ต้องใส่ API key ใน .streamlit/secrets.toml
