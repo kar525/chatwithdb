@@ -6,24 +6,28 @@ import pandas as pd
 from IPython.display import display
 from IPython.display import Markdown
 
-
 try:
     def to_markdown(text):
-      text = text.replace('•', ' *')
-      return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
+        text = text.replace('•', ' *')
+        return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
       
     key = st.secrets['gemini_api_key']  # ต้องใส่ API key ใน .streamlit/secrets.toml
     genai.configure(api_key=key)
     model = genai.GenerativeModel('gemini-2.0-flash-lite')
+    
+    st.title("Data Analysis Chatbot")
+    
     uploaded_file = st.file_uploader("Please upload a datadict file")
     if uploaded_file is not None:
         data_dict_df = pd.read_csv(uploaded_file)
-        data_dict_text = '\n'.join('- '+data_dict_df['column_name']+': '+data_dict_df['data_type']+'. '+data_dict_df['description'])
+        data_dict_text = '\n'.join('- ' + data_dict_df['column_name'] + ': ' + data_dict_df['data_type'] + '. ' + data_dict_df['description'])
+        
         uploaded_file2 = st.file_uploader("Please upload a transaction file")
         if uploaded_file2 is not None:
             transaction_df = pd.read_csv(uploaded_file2)
-            question = st.text_input("In put a question")
-            if question is not None:
+            question = st.text_input("Input a question")
+            
+            if question:
                 example_record = transaction_df.head(2).to_string()
                 df_name = 'transaction_df'
                 prompt = f"""
@@ -67,22 +71,17 @@ try:
                 """
                 response = model.generate_content(prompt)
         
-                to_markdown(response.text)
+                st.markdown(to_markdown(response.text))
                 query = response.text.replace("```", "#")
                 exec(query)
+                
                 explain_the_results = f'''
-                the user asked {question}, 
-                there is the results {ANSWER}
-                answer the question and summarize the answer, 
-                include your opinions of the persona of this customer
+                The user asked: {question}
+                Here are the results: {ANSWER}
+                Answer the question and summarize the answer, 
+                include your opinions of the persona of this customer.
                 '''
                 response = model.generate_content(explain_the_results)
                 st.text(response.text)
 except Exception as e:
-    st.error(f'An error occurred {e}')
-
-
-
-
-
-
+    st.error(f'An error occurred: {e}')
