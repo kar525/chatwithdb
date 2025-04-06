@@ -21,7 +21,7 @@ try:
         data_dict_text = '\n'.join('- '+data_dict_df['column_name']+': '+data_dict_df['data_type']+'. '+data_dict_df['description'])
         uploaded_file2 = st.file_uploader("Please upload a transaction file")
         if uploaded_file2 is not None:
-            transaction_df = pd.read_csv('uploaded_file2')
+            transaction_df = pd.read_csv(uploaded_file2)
             question = st.text_input("In put a question")
             example_record = transaction_df.head(2).to_string()
             df_name = 'transaction_df'
