@@ -67,7 +67,7 @@ try:
                 """
                 response = model.generate_content(prompt)
         
-                to_markdown(respond.text)
+                to_markdown(response.text)
                 query = response.text.replace("```", "#")
                 exec(query)
                 explain_the_results = f'''
