@@ -76,7 +76,8 @@ try:
             '''
             response = model.generate_content(explain_the_results)
             st.text(response)
-
+except Exception as e:
+    st.error(f'An error occurred {e}')
 
 
 
