@@ -77,7 +77,7 @@ try:
                 include your opinions of the persona of this customer
                 '''
                 response = model.generate_content(explain_the_results)
-                st.text(response)
+                st.text(response.text)
 except Exception as e:
     st.error(f'An error occurred {e}')
 
