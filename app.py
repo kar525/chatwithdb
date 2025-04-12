@@ -3,80 +3,101 @@ import pathlib
 import textwrap
 import google.generativeai as genai
 import pandas as pd
-from IPython.display import display
-from IPython.display import Markdown
 
+# ฟังก์ชันสำหรับแปลงข้อความให้แสดงผลเหมือน markdown
+def to_markdown(text):
+    text = text.replace('•', ' *')
+    return textwrap.indent(text, '> ', predicate=lambda _: True)
 
-try:
-    def to_markdown(text):
-      text = text.replace('•', ' *')
-      return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
-      
-    key = st.secrets['gemini_api_key']  # ต้องใส่ API key ใน .streamlit/secrets.toml
-    genai.configure(api_key=key)
-    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-    uploaded_file = st.file_uploader("Please upload a datadict file")
-    if uploaded_file is not None:
-        data_dict_df = pd.read_csv(uploaded_file)
-        data_dict_text = '\n'.join('- '+data_dict_df['column_name']+': '+data_dict_df['data_type']+'. '+data_dict_df['description'])
-        uploaded_file2 = st.file_uploader("Please upload a transaction file")
-        if uploaded_file2 is not None:
-            transaction_df = pd.read_csv(uploaded_file2)
-            question = st.text_input("In put a question")
-            if question is not None:
-                example_record = transaction_df.head(2).to_string()
-                df_name = 'transaction_df'
-                prompt = f"""
-                You are a helpful Python code generator. 
-                Your goal is to write Python code snippets based on the user's 
-                question 
-                and the provided DataFrame information.
-                Here's the context:
-                **User Question:**
-                {question}
-                **DataFrame Name:**
-                {df_name}
-                **DataFrame Details:**
-                {data_dict_text}
-                **Sample Data (Top 2 Rows):**
-                {example_record}
-                **Instructions:**
-                1. Write Python code that addresses the user's question by querying or 
-                manipulating the DataFrame.
-                2. **Crucially, use the `exec()` function to execute the generated
-                code.**
-                3. Do not import pandas
-                4. Change date column type to datetime
-                5. **Store the result of the executed code in a variable named
-                `ANSWER`.** 
-                This variable should hold the answer to the user's question (e.g., 
-                a filtered DataFrame, a calculated value, etc.).
-                6. Assume the DataFrame is already loaded into a pandas DataFrame object 
-                named `{df_name}`. Do not include code to load the DataFrame.
-                7. Keep the generated code concise and focused on answering the question.
-                8. If the question requires a specific output format (e.g., a list, a 
-                single value), ensure the `query_result` variable holds that format.
-                **Example:**
-                If the user asks: "Show me the rows where the 'age' column is 
-                greater than 30."
-                And the DataFrame has an 'age' column.
-                The generated code should look something like this (inside the 
-                `exec()` string):
-                ```python
-                query_result = {df_name}[{df_name}['age'] > 30]
-                """
-                response = model.generate_content(prompt)
-        
-                to_markdown(response.text)
-                query = response.text.replace("```", "#")
-                exec(query)
-                explain_the_results = f'''
-                the user asked {question}, 
-                there is the results {ANSWER}
-                answer the question and summarize the answer, 
-                include your opinions of the persona of this customer
-                '''
-                response = model.generate_content(explain_the_results)
-                st.text(response.text)
-except Exception as e:
-    st.error(f'An error occurred {e}')
+# ตั้งค่า API
+key = st.secrets['gemini_api_key']  # ต้องใส่ API key ใน .streamlit/secrets.toml
+genai.configure(api_key=key)
+model = genai.GenerativeModel('gemini-2.0-flash-lite')
+
+st.title("Chat with Your Data 📊💬")
+
+# อัปโหลด data dictionary และ transaction file
+uploaded_file = st.file_uploader("Upload your Data Dictionary CSV", type=["csv"])
+uploaded_file2 = st.file_uploader("Upload your Transaction Data CSV", type=["csv"])
+
+if uploaded_file and uploaded_file2:
+    # โหลดไฟล์
+    data_dict_df = pd.read_csv(uploaded_file)
+    transaction_df = pd.read_csv(uploaded_file2)
+    df_name = "transaction_df"
+
+    # แปลงข้อมูล dictionary ให้เป็นข้อความ
+    data_dict_text = '\n'.join(
+        '- ' + row['column_name'] + ': ' + row['data_type'] + '. ' + row['description']
+        for _, row in data_dict_df.iterrows()
+    )
+    example_record = transaction_df.head(2).to_string()
+
+    # เตรียม state สำหรับเก็บข้อความแชท
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # แสดงประวัติแชท
+    for chat in st.session_state.chat_history:
+        with st.chat_message(chat["role"]):
+            st.markdown(chat["content"])
+
+    # Input แชท
+    user_input = st.chat_input("Ask me anything about the data...")
+
+    if user_input:
+        # บันทึกคำถามของผู้ใช้
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # เตรียม prompt
+        prompt = f"""
+You are a helpful Python code generator.
+Your goal is to write Python code snippets based on the user's question and the provided DataFrame information.
+
+**User Question:**
+{user_input}
+
+**DataFrame Name:**
+{df_name}
+
+**DataFrame Details:**
+{data_dict_text}
+
+**Sample Data (Top 2 Rows):**
+{example_record}
+
+**Instructions:**
+1. Write Python code that addresses the user's question by querying or manipulating the DataFrame.
+2. Use the `exec()` function to execute the generated code.
+3. Do not import pandas.
+4. Change date column type to datetime if needed.
+5. Store the result of the executed code in a variable named `ANSWER`.
+6. Assume the DataFrame is already loaded into a pandas DataFrame object named `{df_name}`.
+7. The code should return a concise and useful result.
+        """
+
+        response = model.generate_content(prompt)
+        generated_code = response.text.replace("```python", "").replace("```", "").strip()
+
+        try:
+            # รันโค้ดที่ได้จากโมเดล
+            exec(generated_code)
+            # สร้างคำอธิบายผลลัพธ์
+            explain_prompt = f"""
+The user asked: "{user_input}"
+The result is: {str(ANSWER)}
+
+Explain the result, answer the question, and optionally provide insights into the customer's behavior/persona.
+"""
+            explain_response = model.generate_content(explain_prompt)
+            bot_reply = explain_response.text.strip()
+
+        except Exception as e:
+            bot_reply = f"⚠️ An error occurred while executing the code:\n```\n{e}\n```"
+
+        # บันทึกและแสดงคำตอบของ bot
+        st.session_state.chat_history.append({"role": "assistant", "content": bot_reply})
+        with st.chat_message("assistant"):
+            st.markdown(bot_reply)
